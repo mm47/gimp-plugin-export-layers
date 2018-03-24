@@ -323,8 +323,6 @@ class ExportLayersGui(object):
     
     self._init_settings()
     
-    pgpdb.suppress_gimp_progress()
-    
     self._init_gui()
     
     pggui.set_gui_excepthook_parent(self._dialog)
@@ -847,7 +845,6 @@ class ExportLayersGui(object):
           _("No layers were exported."), gtk.MESSAGE_INFO, parent=self._dialog)
         should_quit = False
     finally:
-      self._item_progress_indicator.uninstall_progress_for_status()
       self._layer_exporter = None
       self._is_exporting = False
     
@@ -880,9 +877,6 @@ class ExportLayersGui(object):
     progress_updater = pggui.GtkProgressUpdater(
       self._item_progress_indicator.progress_bar_for_items)
     
-    self._item_progress_indicator.install_progress_for_status(
-      self._progress_set_value_and_show_dialog)
-    
     self._layer_exporter = exportlayers.LayerExporter(
       gimpenums.RUN_INTERACTIVE, self._image, self._settings["main"],
       overwrite_chooser, progress_updater,
@@ -907,8 +901,7 @@ class ExportLayersGui(object):
     for child in self._dialog.vbox:
       if child not in (
            self._dialog.action_area,
-           self._item_progress_indicator.progress_bar_for_items,
-           self._item_progress_indicator.progress_bar_for_item_status):
+           self._item_progress_indicator.progress_bar_for_items):
         child.set_sensitive(enabled)
     
     self._button_settings.set_sensitive(enabled)
@@ -922,17 +915,6 @@ class ExportLayersGui(object):
       self._file_extension_entry.set_position(-1)
     else:
       self._dialog.set_focus(self._button_stop)
-  
-  def _progress_set_value_and_show_dialog(self, fraction):
-    self._item_progress_indicator.progress_bar_for_item_status.set_fraction(fraction)
-    
-    # Without this workaround, the main dialog would not appear until the export
-    # of the second layer.
-    if not self._dialog.get_mapped():
-      self._dialog.show()
-    
-    while gtk.events_pending():
-      gtk.main_iteration()
   
   def _on_dialog_delete_event(self, widget, event):
     gtk.main_quit()
@@ -1038,8 +1020,6 @@ class ExportLayersRepeatGui(object):
         exportlayers.add_operation(setting_group_with_operations[setting_name])
   
   def export_layers(self):
-    self._item_progress_indicator.install_progress_for_status()
-    
     self._layer_exporter = exportlayers.LayerExporter(
       gimpenums.RUN_WITH_LAST_VALS, self._image, self._settings["main"],
       pgoverwrite.NoninteractiveOverwriteChooser(
@@ -1063,8 +1043,6 @@ class ExportLayersRepeatGui(object):
       if not self._layer_exporter.exported_layers:
         display_message(
           _("No layers were exported."), gtk.MESSAGE_INFO, parent=self._dialog)
-    finally:
-      self._item_progress_indicator.uninstall_progress_for_status()
   
   def show(self):
     self._dialog.vbox.show_all()
